@@ -107,6 +107,13 @@ export default function MeetingView() {
         <span className="meta" style={{ color: '#9fb2c0' }}>{tiles.length} 人在会议中</span>
       </div>
       {meet.notes.length ? <div className="meet-note">{meet.notes.map((n) => <div key={n}>{n}</div>)}</div> : null}
+      {meet.peers.some((p) => p.conn === 'failed') ? (
+        <div className="meet-note">
+          与 {meet.peers.filter((p) => p.conn === 'failed').map((p) => p.name).join('、')} 之间无法直连（ICE 失败）。
+          常见原因：两人不在同一个局域网，或防火墙、VPN 拦住了 UDP。跨网络需要配置 TURN 中继，
+          启动服务时设置环境变量 ICE_SERVERS，见 README。
+        </div>
+      ) : null}
       <div className="meet-body">
         <div className="meet-grid" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
           {tiles.map((t) => <Tile key={t.id} {...t} rev={meet.rev} />)}
