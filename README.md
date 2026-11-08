@@ -8,11 +8,11 @@
 
 | 对方有什么 | 怎么做 | 是否需要 Node |
 |---|---|---|
-| 只有浏览器 | 双击 `dist/index.html` | 否 |
+| 只有浏览器 | 下载仓库后双击 `dist/index.html` | 否 |
 | 想改代码 | `npm install` → `npm run dev` → 打开 http://127.0.0.1:5173/ | 是（18 及以上） |
 | 要放到服务器上 | `npm run build`，把整个 `dist` 目录上传 | 构建时需要 |
 
-`dist/index.html` 是**单文件**：JS、CSS、图标全部内联，不依赖网络字体，也不需要本地服务器。可以直接发给别人双击打开，Windows 装了 Chrome / Edge 就行。
+`dist/index.html` 是**单文件**：JS、CSS、图标全部内联，不引用任何网络字体，也不需要本地服务器。可以单独发给别人双击打开，装了 Chrome / Edge 就行。
 
 改完代码要重新 `npm run build`，`dist/index.html` 才会更新——它是构建产物，不是源码。
 
