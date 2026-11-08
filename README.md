@@ -2,7 +2,19 @@
 
 无中心服务器的点对点通信客户端前端。基于 Tox 协议，目标是在没有中心服务器的情况下实现接近中心化服务的传输可靠性。
 
-当前阶段：**只完成了前端**，后端（toxcore 接入、SQLCipher 传输账本）尚未接入。界面上的按钮会记录对应的后端接口名，接上后端不需要改界面。
+当前阶段：**只有前端**。后端（toxcore 接入、SQLCipher 传输账本、调度器、AI 方案）尚未接入。界面上的按钮会记录对应的后端接口名，接上后端不需要改界面。
+
+## 三种查看方式（按对方条件选）
+
+| 对方有什么 | 怎么做 | 是否需要 Node |
+|---|---|---|
+| 只有浏览器 | 双击 `dist/index.html` | 否 |
+| 想改代码 | `npm install` → `npm run dev` → 打开 http://127.0.0.1:5173/ | 是（18 及以上） |
+| 要放到服务器上 | `npm run build`，把整个 `dist` 目录上传 | 构建时需要 |
+
+`dist/index.html` 是**单文件**：JS、CSS、图标全部内联，不依赖网络字体，也不需要本地服务器。可以直接发给别人双击打开，Windows 装了 Chrome / Edge 就行。
+
+改完代码要重新 `npm run build`，`dist/index.html` 才会更新——它是构建产物，不是源码。
 
 ## 两个创新点
 
@@ -12,32 +24,34 @@
 2. **自适应多文件并发调度**
    用消息「发送→回执」延迟作为 RTT 代理，叠加传输速率采样，动态调整并发路数（差网降到 2 路）、暂停低优先级任务、给大文件让路。提供速度优先 / 公平优先 / 省电优先三种策略。
 
-## 运行
-
-```bash
-npm install
-npm run dev
-```
-
-打开 http://127.0.0.1:5173/
-
 ## 目录
 
 ```
+index.html            开发入口
+dist/index.html       单文件构建产物（可直接双击）
 src/
-  App.jsx               主框架、全局状态、演示流程编排
-  data.js               演示数据（好友、会话、传输任务、哈希）
-  icons.jsx             内联 SVG 图标
-  index.css             全部样式
-  lib/format.js         字节 / 哈希展示工具
-  mock/backend.js       后端调用占位层（记录已点击的接口名）
+  App.jsx             主框架、全局状态、演示流程编排
+  data.js             演示数据（好友、会话、传输任务、哈希）
+  icons.jsx           内联 SVG 图标
+  index.css           全部样式
+  lib/format.js       字节 / 哈希展示工具
+  mock/backend.js     后端调用占位层（记录已点击的接口名）
   views/
-    ChatView.jsx        会话与消息
-    ContactsView.jsx    通讯录用 Tox ID 加人
-    TransferView.jsx    传输账本、续传验证、调度策略
-    MeetingView.jsx     点对点会议
-    SettingsView.jsx    身份与后端调用记录
+    ChatView.jsx      会话与消息
+    ContactsView.jsx  通讯录用 Tox ID 加人
+    TransferView.jsx  传输账本、续传验证、调度策略
+    MeetingView.jsx   点对点会议
+    SettingsView.jsx  身份与后端调用记录
 ```
+
+## 演示顺序
+
+| 点谁 / 点哪 | 看到什么 |
+|---|---|
+| 林晓 → 右上「演示续传」 | 1 GB 录像断线后变为可恢复，确认后 A + B = 文件大小，SHA-256 一致 |
+| 董苟 → 传输页切「省电优先」 | 并发降到 2 路，低优先级任务让路 |
+| 答辩小组 → 会议 → 加入 | 四宫格点对点房间 |
+| 王老师 | 验收口径：续传量与哈希 |
 
 ## 续传验证方式
 
