@@ -483,3 +483,101 @@ img { max-width: 100%; }
   .rail { width: 60px; }
   .gate { grid-template-columns: 1fr; }
 }
+
+/* ---- 真实后端版新增样式 ---- */
+.boot { color: #b9c4ce; }
+.rail-avatar { background: none; box-shadow: none; padding: 0; margin-bottom: 10px; }
+.badge.inline { position: static; flex: none; }
+.avatar-wrap { position: relative; flex: none; }
+.presence {
+  position: absolute; right: -2px; bottom: -2px; width: 11px; height: 11px; border-radius: 99px;
+  background: #9aa0a6; border: 2px solid var(--list);
+}
+.presence.on { background: #25b36a; }
+.friend-row .presence, .main .presence { border-color: var(--paper); }
+.head-who { display: flex; align-items: center; gap: 10px; }
+.stamp { font-size: 10.5px; color: var(--muted); margin: 3px 4px 0; }
+.msg.mine .stamp { text-align: right; }
+.btn-row .small, .small.teal-btn, .small.plain-btn, .small.amber-btn { height: 30px; padding: 0 12px; font-size: 12px; }
+a.teal-btn { text-decoration: none; }
+.empty.small { height: auto; padding: 28px 12px; font-size: 13px; }
+.icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.col.main.dragging::after {
+  content: "松开鼠标，发送这些文件"; position: absolute; inset: 8px; z-index: 5;
+  display: grid; place-items: center; font-weight: 700; color: var(--teal-deep);
+  background: rgba(216,243,238,0.88); border: 2px dashed var(--teal); border-radius: 18px;
+}
+.file-card { min-width: 240px; max-width: 320px; }
+.bubble .file-chip { min-width: 0; }
+
+.auth-card {
+  background: #fff; border-radius: 20px; padding: 24px; display: grid; gap: 14px;
+  box-shadow: var(--shadow); width: 100%; max-width: 380px;
+}
+.auth-card label { display: grid; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.auth-card input, .field {
+  height: 40px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px;
+  background: #fffcf7; color: var(--ink); font-size: 14px; width: 100%;
+}
+.auth-card input:focus, .field:focus { outline: 2px solid rgba(15,143,130,0.35); }
+.auth-tabs { margin-bottom: 4px; }
+.form-error { background: #f8d4d0; color: #8e2b22; border-radius: 10px; padding: 8px 10px; font-size: 12.5px; line-height: 1.5; }
+.teal-btn:disabled, .amber-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.contacts-grid { padding: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-content: start; }
+.friend-list { display: grid; gap: 4px; }
+.friend-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.friend-row.dark { color: #e8eef4; }
+.friend-row.dark .meta { color: #9fb2c0; }
+.add-row { padding: 0 0 12px; }
+
+.proof.light .proof-card { background: var(--paper); border-color: transparent; }
+.proof.light .proof-card em { color: var(--muted); }
+.proof.light .proof-card b { color: var(--ink); font-size: 13px; word-break: break-all; }
+.proof-card b { word-break: break-all; font-size: 15px; }
+.proof-card.bad { box-shadow: inset 0 0 0 1px rgba(224,90,76,0.7); }
+.hash-compare { margin-top: 12px; display: grid; gap: 4px; }
+.hash-compare .mono { color: #e6edf2; }
+.status.resume { white-space: nowrap; }
+.scheduler .seg + .sub { margin-top: 10px; }
+
+/* 会议 */
+.lobby { flex: 1; display: grid; place-items: center; background: var(--paper); padding: 24px; overflow: auto; }
+.lobby-card { background: #fff; border-radius: 22px; padding: 26px; width: min(760px, 100%); box-shadow: var(--shadow); }
+.lobby-card h2 { margin: 0 0 14px; }
+.lobby-card h3 { margin: 0 0 10px; font-size: 15px; }
+.lobby-split { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.lobby-split section { display: grid; gap: 10px; align-content: start; }
+.lobby-split p { margin: 0; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.mono-in { font-family: var(--mono); letter-spacing: 0.2em; text-transform: uppercase; }
+.meet { min-width: 0; }
+.meet-head { padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; background: #0c1319; }
+.room-code { margin-left: 12px; font-family: var(--mono); font-size: 12px; background: rgba(255,255,255,0.08); padding: 3px 9px; border-radius: 99px; cursor: pointer; }
+.meet-note { background: #4a3517; color: #f6d9a8; font-size: 12.5px; padding: 8px 16px; line-height: 1.6; }
+.meet-body { flex: 1; display: flex; min-height: 0; }
+.meet-grid { flex: 1; display: grid; gap: 8px; padding: 12px 12px 8px; align-content: center; min-height: 0; overflow: auto; }
+.meet-grid .tile { aspect-ratio: 16 / 9; width: 100%; max-height: calc(100vh - 220px); justify-self: center; }
+.meet-panel { width: 260px; background: #0c1319; padding: 14px; overflow: auto; border-left: 1px solid rgba(255,255,255,0.06); }
+.meet-panel h4 { margin: 0 0 8px; }
+.tile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; background: #000; }
+.tile video.show { opacity: 1; }
+.tile.speaking { box-shadow: inset 0 0 0 3px var(--teal-2); }
+.tile-avatar { width: 84px; height: 84px; border-radius: 28px; display: grid; place-items: center; font-size: 34px; font-weight: 700; color: #fff; }
+.tile .tile-name { display: inline-flex; align-items: center; gap: 5px; z-index: 2; }
+.tile .tile-name svg { width: 13px; height: 13px; color: #ff9a8f; }
+.level { position: absolute; right: 10px; bottom: 10px; width: 5px; height: 36px; border-radius: 99px; background: rgba(255,255,255,0.12); overflow: hidden; display: flex; align-items: flex-end; z-index: 2; }
+.level i { display: block; width: 100%; background: var(--teal-2); transition: height 0.1s; }
+.dock button.off { background: #5a2a26; color: #ffd3cd; }
+.meet-return {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 15;
+  border: 0; background: var(--teal); color: #fff; padding: 8px 16px; border-radius: 99px;
+  font-weight: 700; font-size: 12.5px; box-shadow: var(--shadow);
+}
+.call-invite { text-align: center; display: grid; gap: 8px; justify-items: center; width: min(380px, calc(100% - 40px)); }
+.call-invite h3 { margin: 6px 0 0; }
+.call-invite .avatar { border-radius: 24px; }
+
+@media (max-width: 900px) {
+  .contacts-grid, .lobby-split { grid-template-columns: 1fr; }
+}
