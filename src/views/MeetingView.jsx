@@ -59,20 +59,23 @@ function Lobby() {
         {!window.isSecureContext ? (
           <div className="form-error">当前页面不是 localhost 或 HTTPS，浏览器会禁止摄像头和麦克风。请改用 http://localhost:8787 打开。</div>
         ) : null}
+        <fieldset className="join-settings">
+          <legend>入会设置</legend>
+          <label className="check"><input type="checkbox" checked={audio} onChange={(e) => setAudio(e.target.checked)} /> 打开麦克风</label>
+          <label className="check"><input type="checkbox" checked={video} onChange={(e) => setVideo(e.target.checked)} /> 打开摄像头</label>
+          <p className="meta">创建或加入会议时，均使用以上设置。</p>
+        </fieldset>
         <div className="lobby-split">
           <section>
             <h3>新建会议</h3>
-            <input className="field" placeholder="会议主题（可不填）" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <label className="check"><input type="checkbox" checked={audio} onChange={(e) => setAudio(e.target.checked)} /> 入会时打开麦克风</label>
-            <label className="check"><input type="checkbox" checked={video} onChange={(e) => setVideo(e.target.checked)} /> 入会时打开摄像头</label>
+            <label className="field-label">会议主题<input className="field" placeholder="例如：项目讨论（可不填）" value={title} onChange={(e) => setTitle(e.target.value)} /></label>
             <button className="teal-btn" type="button" disabled={busy} onClick={() => run(() => createRoom({ title, audio, video }))}>创建新会议</button>
             <p className="meta">创建后会得到 6 位会议号，也可以在会议里直接邀请好友。</p>
           </section>
           <section>
             <h3>加入会议</h3>
-            <input className="field mono-in" placeholder="输入 6 位会议号" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
-            <button className="amber-btn" type="button" disabled={busy || code.length !== 6} onClick={() => run(() => joinRoom(code, { audio, video }))}>加入</button>
-            <p className="meta">麦克风和摄像头的开关沿用左边的选择。</p>
+            <label className="field-label">会议号<input className="field mono-in" placeholder="输入 6 位会议号" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.trim().toUpperCase())} /></label>
+            <button className="plain-btn" type="button" disabled={busy || code.length !== 6} onClick={() => run(() => joinRoom(code, { audio, video }))}>加入会议</button>
           </section>
         </div>
       </div>
@@ -102,7 +105,7 @@ export default function MeetingView() {
       <div className="meet-head">
         <div>
           <b>{meet.room.title}</b>
-          <span className="room-code" onClick={copy} title="点击复制">会议号 {meet.room.id}</span>
+          <button type="button" className="room-code" onClick={copy} title="复制会议号">会议号 {meet.room.id}</button>
         </div>
         <span className="meta" style={{ color: '#9fb2c0' }}>{tiles.length} 人在会议中</span>
       </div>

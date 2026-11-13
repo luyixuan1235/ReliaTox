@@ -1,0 +1,143 @@
+{
+  "date": "2026-11-13",
+  "environment": "Local development server; isolated synthetic QA accounts and data",
+  "checks": [
+    {
+      "name": "搜索无匹配时显示说明",
+      "passed": true
+    },
+    {
+      "name": "清空搜索恢复联系人",
+      "passed": true
+    },
+    {
+      "name": "弹窗打开后聚焦好友输入框",
+      "passed": true
+    },
+    {
+      "name": "Tab 焦点限制在弹窗内",
+      "passed": true
+    },
+    {
+      "name": "Escape 关闭弹窗并恢复触发按钮焦点",
+      "passed": true
+    },
+    {
+      "name": "390px 聊天页面无水平溢出",
+      "passed": true
+    },
+    {
+      "name": "手机返回会话列表",
+      "passed": true
+    },
+    {
+      "name": "Shift+Enter 保留换行且不发送",
+      "passed": true
+    },
+    {
+      "name": "Enter 发送后消息出现在会话中",
+      "passed": true
+    },
+    {
+      "name": "320px 长消息无水平溢出",
+      "passed": true
+    },
+    {
+      "name": "传输筛选显示真实空状态",
+      "passed": true
+    },
+    {
+      "name": "已完成筛选保留真实文件",
+      "passed": true
+    },
+    {
+      "name": "320px 传输详情无水平溢出",
+      "passed": true
+    },
+    {
+      "name": "断开后显示恢复连接入口",
+      "passed": true
+    },
+    {
+      "name": "恢复后回到在线操作状态",
+      "passed": true
+    },
+    {
+      "name": "创建会议遵循关闭麦克风与摄像头的设置",
+      "passed": true
+    },
+    {
+      "name": "390px 登录按钮在首屏可见",
+      "passed": true
+    },
+    {
+      "name": "390px 登录页无水平溢出",
+      "passed": true
+    },
+    {
+      "name": "注册切换显示密码要求",
+      "passed": true
+    },
+    {
+      "name": "第二账号能够读取实际发送的多行消息",
+      "passed": true
+    },
+    {
+      "name": "第二账号加入会议成功",
+      "passed": true
+    },
+    {
+      "name": "加入会议遵循关闭设备的选择",
+      "passed": true
+    },
+    {
+      "name": "390px 会议无水平溢出",
+      "passed": true
+    },
+    {
+      "name": "实际断线后显示续传确认与剩余字节数",
+      "passed": true
+    },
+    {
+      "name": "真实浏览器文件续传完成",
+      "passed": true
+    },
+    {
+      "name": "续传验证显示 A+B 等于文件大小",
+      "passed": true
+    },
+    {
+      "name": "接收方下载文件与原文件 SHA-256 一致",
+      "passed": true
+    },
+    {
+      "name": "文件完成后发送速度回到零",
+      "passed": true
+    },
+    {
+      "name": "通讯录保留好友与添加入口",
+      "passed": true
+    },
+    {
+      "name": "个人页手机宽度无水平溢出",
+      "passed": true
+    },
+    {
+      "name": "两账号验收期间浏览器控制台无错误",
+      "passed": true
+    }
+  ],
+  "consoleErrors": [],
+  "fileResume": {
+    "confirmedBeforeInterruption": 445703,
+    "resumedBytes": 1651449,
+    "totalBytes": 2097152,
+    "downloadedSha256": "91d3beb88a9b2f778a6c44a1c53b63d3c79931845a9aef84b3fb414610bd1938"
+  },
+  "notVerified": [
+    "Real camera and microphone capture",
+    "Screen sharing",
+    "Cross-network WebRTC",
+    "Browsers other than the built-in Chromium browser"
+  ]
+}

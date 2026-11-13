@@ -1,0 +1,14 @@
+
+> reliatox-web@0.1.0 build
+> vite build
+
+vite v8.3.6 building client environment for production...
+transforming...
+✓ 2098 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.52 kB │ gzip:  0.38 kB
+dist/assets/index-DU8CpVtz.css   21.44 kB │ gzip:  5.54 kB
+dist/assets/index-DHYKOu8v.js   293.66 kB │ gzip: 93.48 kB
+
+✓ built in 780ms
