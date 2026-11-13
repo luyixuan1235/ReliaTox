@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { IconPhone, IconPlus, IconSend, IconTransfer, IconVideo } from '../icons.jsx'
+import { IconBack, IconChat, IconClose, IconPhone, IconPlus, IconSearch, IconSend, IconTransfer, IconVideo } from '../icons.jsx'
 import { loadHistory, openChat, sendText } from '../net/client.js'
 import { accept, cancel, reattach, sendFile, startTransfer, hasFile } from '../net/transfers.js'
 import { startCall } from '../net/meeting.js'
@@ -8,7 +8,7 @@ import { avatarColor, clock, formatBytes, initials } from '../lib/format.js'
 
 export function Avatar({ name, id, size }) {
   return (
-    <div className="avatar" style={{ background: avatarColor(id || name), ...(size ? { width: size, height: size, fontSize: size * 0.4 } : null) }}>
+    <div className="avatar" style={{ background: avatarColor(id || name), ...(size ? { width: size, height: size, fontSize: size >= 52 ? 20 : 14 } : null) }}>
       {initials(name)}
     </div>
   )
@@ -97,7 +97,7 @@ export default function ChatView() {
     if (tab === 'chat' && activeId) setState((s) => (s.unread[activeId] ? { unread: { ...s.unread, [activeId]: 0 } } : null))
   }, [tab, activeId, list.length])
 
-  const shown = useMemo(() => friends.filter((f) => f.username.toLowerCase().includes(filter.toLowerCase())), [friends, filter])
+  const shown = useMemo(() => friends.filter((f) => f.username.toLowerCase().includes(filter.trim().toLowerCase())), [friends, filter])
   const hashingHere = Object.values(hashing)
 
   async function submit() {
@@ -117,13 +117,17 @@ export default function ChatView() {
   }
 
   return (
-    <>
+    <div className={`chat-layout ${active ? 'has-active' : ''}`}>
       <aside className="col list-col">
         <div className="list-head">
-          <h2>会话</h2>
-          <button className="icon-btn" type="button" title="添加好友" onClick={() => setState({ modal: { type: 'add' } })}><IconPlus /></button>
+          <h2>会话 <span className="count">{friends.length}</span></h2>
+          <button className="icon-btn add-friend-btn" type="button" title="添加好友" aria-label="添加好友" onClick={() => setState({ modal: { type: 'add' } })}><IconPlus /></button>
         </div>
-        <input className="search" placeholder="搜索好友" value={filter} onChange={(e) => setFilter(e.target.value)} />
+        <div className="search-wrap">
+          <IconSearch />
+          <input className="search" aria-label="搜索好友" placeholder="搜索好友" value={filter} onChange={(e) => setFilter(e.target.value)} />
+          {filter ? <button className="icon-btn" type="button" aria-label="清空搜索" onClick={() => setFilter('')}><IconClose /></button> : null}
+        </div>
         <div className="scroll">
           {shown.map((f) => {
             const last = (messages[f.id] || []).at(-1)
@@ -135,7 +139,7 @@ export default function ChatView() {
                 </div>
                 <div className="grow">
                   <b className="ellipsis">{f.username}</b>
-                  <span className="ellipsis" style={{ display: 'block' }}>
+                  <span className="ellipsis preview-text">
                     {last ? (last.type === 'file' ? `[文件] ${last.text}` : last.text) : f.online ? '在线' : '离线'}
                   </span>
                 </div>
@@ -143,6 +147,9 @@ export default function ChatView() {
               </button>
             )
           })}
+          {friends.length > 0 && shown.length === 0 ? (
+            <div className="empty small"><IconSearch /><h3>没有找到相关好友</h3><p>试试其他名字，或清空搜索查看全部会话。</p><button className="plain-btn small" type="button" onClick={() => setFilter('')}>清空搜索</button></div>
+          ) : null}
           {!friends.length ? (
             <div className="empty small">
               <div>
@@ -164,15 +171,16 @@ export default function ChatView() {
           <>
             <div className="pane-head">
               <div className="head-who">
+                <button className="icon-btn chat-back" type="button" aria-label="返回会话列表" onClick={() => setState({ activeId: null })}><IconBack /></button>
                 <Avatar name={active.username} id={active.id} size={36} />
                 <div>
                   <h3>{active.username}</h3>
-                  <div className="sub">{active.online ? '在线' : '离线 · 消息会保存，对方上线后可见'}</div>
+                  <div className="sub presence-label"><span className={`dot ${active.online ? '' : 'off'}`} />{active.online ? '在线' : '离线 · 上线后可查看消息'}</div>
                 </div>
               </div>
               <div className="btn-row">
-                <button className="icon-btn" type="button" title="语音通话" disabled={!active.online} onClick={() => startCall(active.id, 'audio')}><IconPhone /></button>
-                <button className="icon-btn" type="button" title="视频通话" disabled={!active.online} onClick={() => startCall(active.id, 'video')}><IconVideo /></button>
+                <button className="icon-btn" type="button" title="语音通话" aria-label="语音通话" disabled={!active.online || link !== 'online'} onClick={() => startCall(active.id, 'audio')}><IconPhone /></button>
+                <button className="icon-btn" type="button" title="视频通话" aria-label="视频通话" disabled={!active.online || link !== 'online'} onClick={() => startCall(active.id, 'video')}><IconVideo /></button>
               </div>
             </div>
             <div className="chat-log scroll" ref={logRef}>
@@ -182,7 +190,7 @@ export default function ChatView() {
                 return (
                   <div key={m.id} className={`msg ${mine ? 'mine' : 'theirs'}`}>
                     <Avatar name={mine ? me.username : active.username} id={mine ? me.id : active.id} size={32} />
-                    <div>
+                    <div className="message-content">
                       <div className="bubble">{m.type === 'file' ? <FileBubble msg={m} /> : m.text}</div>
                       <div className="stamp">{clock(m.at)}</div>
                     </div>
@@ -195,14 +203,15 @@ export default function ChatView() {
                 <div className="meta" key={h.name}>正在计算 {h.name} 的 SHA-256：{h.pct}%</div>
               ))}
               <div className="composer-tools">
-                <button className="icon-btn" type="button" title="发送文件" onClick={() => fileRef.current?.click()}><IconTransfer /></button>
+                <button className="attachment-btn" type="button" title="发送文件" disabled={link !== 'online'} onClick={() => fileRef.current?.click()}><IconTransfer /> 发送文件</button>
                 <input ref={fileRef} type="file" multiple hidden onChange={(e) => { pick([...e.target.files]); e.target.value = '' }} />
                 <span className="meta" style={{ alignSelf: 'center' }}>也可以把文件直接拖进来</span>
               </div>
               <div className="composer-row">
                 <textarea
                   value={draft}
-                  placeholder={link === 'online' ? '输入消息，Enter 发送，Shift+Enter 换行' : '当前没有连接'}
+                  aria-label="输入消息"
+                  placeholder={link === 'online' ? `发送消息给 ${active.username}…` : '连接断开，恢复后即可发送'}
                   disabled={link !== 'online'}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => {
@@ -214,12 +223,18 @@ export default function ChatView() {
                 />
                 <button className="teal-btn" type="button" onClick={submit} disabled={!draft.trim() || link !== 'online'}><IconSend /> 发送</button>
               </div>
+              <div className="composer-hint">Enter 发送 <span>·</span> Shift + Enter 换行</div>
             </div>
           </>
         ) : (
-          <div className="empty">{friends.length ? '选一个好友开始聊天' : '先添加一个好友。开另一个浏览器窗口注册第二个账号即可测试。'}</div>
+          <div className="empty chat-welcome">
+            <div className="welcome-symbol"><IconChat /></div>
+            <h2>{friends.length ? '选择一个会话' : '开始你的第一次对话'}</h2>
+            <p>{friends.length ? '选择左侧的好友，查看消息或分享文件。' : '添加好友后，即可聊天、传文件或发起会议。'}</p>
+            <button className="teal-btn" type="button" onClick={() => setState({ modal: { type: 'add' } })}><IconPlus /> 添加好友</button>
+          </div>
         )}
       </section>
-    </>
+    </div>
   )
 }

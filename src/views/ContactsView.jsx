@@ -23,7 +23,7 @@ export function AddFriendForm({ onDone }) {
   }
   return (
     <form className="add-row" onSubmit={submit}>
-      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="对方的用户名，或 76 位 ID" autoFocus />
+      <input aria-label="好友用户名或 ID" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="对方的用户名，或 76 位 ID" autoFocus />
       <button className="teal-btn" type="submit" disabled={busy || !query.trim()}>添加</button>
     </form>
   )
