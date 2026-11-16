@@ -1,0 +1,23 @@
+吴嘉伟负责的测试代码。不含周若曦的文件传输与断点续传（FN-FILE-01～07、E2E-13～E2E-25）。
+
+functional.mjs
+  20 条：FN-ACC-01～06、FN-CHAT-01～06、FN-MEET-01～03、FN-WEB-01、FN-SCH-01～04
+  本次运行 20/20 通过，记录在 functional-results.json
+
+e2e.mjs
+  20 条：E2E-01～12（账号、好友与聊天）、E2E-26～33（会议）
+  本次运行 20/20 通过
+
+fuzz.mjs
+  模糊测试，种子 20261116。由吴嘉伟负责。
+
+界面截图
+  UI-01～UI-06，登录、空聊天、添加好友、传输页、会议大厅、个人页。
+
+用法：把 functional.mjs、e2e.mjs、fuzz.mjs 放到 ReliaTox 项目的 server/test/。
+在项目根目录执行：
+  node server/test/functional.mjs
+  node server/test/e2e.mjs
+  node server/test/fuzz.mjs
+脚本各自启动临时服务，不调用 DeepSeek。
+周若曦的文件传输测试单独放在 server/test/file-transfer.mjs，不要再写进这两个脚本。

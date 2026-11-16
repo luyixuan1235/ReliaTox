@@ -1,0 +1,231 @@
+{
+  "summary": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "generatedAt": "2026-11-16T14:20:37.470Z",
+    "dataDir": "/tmp/reliatox-fn-1jgfDa"
+  },
+  "cases": [
+    {
+      "id": "FN-ACC-01",
+      "module": "账号",
+      "goal": "合法用户名与 6 位密码可以注册",
+      "pre": "临时空库",
+      "steps": "POST /api/register username=ab password=123456",
+      "expected": "200，返回 token 与 76 位校验通过的 ID",
+      "actual": "200，ID 校验通过 32327ED6…",
+      "pass": true,
+      "ms": 52
+    },
+    {
+      "id": "FN-ACC-02",
+      "module": "账号",
+      "goal": "用户名长度与字符等价类",
+      "pre": "服务已启动",
+      "steps": "分别注册 1 位、21 位、空格、符号、20 位、中文、下划线与连字符",
+      "expected": "非法输入 400；20 位、中文、下划线、连字符 200",
+      "actual": "5 个非法用户名均为 400，4 个合法用户名均为 200",
+      "pass": true,
+      "ms": 169
+    },
+    {
+      "id": "FN-ACC-03",
+      "module": "账号",
+      "goal": "密码长度边界",
+      "pre": "用户名未占用",
+      "steps": "密码 5 位与 6 位各注册一次",
+      "expected": "5 位 400，6 位 200",
+      "actual": "5 位返回 400，6 位返回 200",
+      "pass": true,
+      "ms": 38
+    },
+    {
+      "id": "FN-ACC-04",
+      "module": "账号",
+      "goal": "登录、会话与退出",
+      "pre": "已有用户 ab",
+      "steps": "错误密码、错误用户、正确登录、GET /api/me、POST /api/logout、再用旧 token",
+      "expected": "错误为 401；正确为 200；退出后旧 token 失效",
+      "actual": "错误登录 401，正确登录与 /api/me 200，退出后旧 token 401",
+      "pass": true,
+      "ms": 936
+    },
+    {
+      "id": "FN-ACC-05",
+      "module": "账号",
+      "goal": "库中不保存明文密码",
+      "pre": "已注册用户",
+      "steps": "读取临时 db.json",
+      "expected": "文件不含 123456，含 salt 与 hash",
+      "actual": "db.json 无明文密码，存在 salt 与 hash",
+      "pass": true,
+      "ms": 250
+    },
+    {
+      "id": "FN-ACC-06",
+      "module": "账号",
+      "goal": "非法 JSON 与未知接口",
+      "pre": "服务已启动",
+      "steps": "POST 非 JSON；GET /api/nope",
+      "expected": "分别返回 400 与 404",
+      "actual": "非法 JSON 为 400，未知接口为 404",
+      "pass": true,
+      "ms": 7
+    },
+    {
+      "id": "FN-CHAT-01",
+      "module": "好友与聊天",
+      "goal": "用用户名加好友，重复添加不重复建关系",
+      "pre": "alice、bob 在线且还不是好友",
+      "steps": "friend.add query=BoB，再添加一次",
+      "expected": "第一次 already=false，第二次 already=true，bob 收到好友列表",
+      "actual": "用户名不区分大小写，重复添加返回 already=true",
+      "pass": true,
+      "ms": 2
+    },
+    {
+      "id": "FN-CHAT-02",
+      "module": "好友与聊天",
+      "goal": "76 位 ID 与 64 位前缀可以找到用户",
+      "pre": "carol 已注册，尚未与 alice 成为好友",
+      "steps": "用完整 ID 添加，再单独解析 64 位前缀",
+      "expected": "添加成功；64 位前缀指向同一 toxId",
+      "actual": "完整 ID 与 64 位前缀都定位到 carol",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "id": "FN-CHAT-03",
+      "module": "好友与聊天",
+      "goal": "不存在的用户和自己都不能添加",
+      "pre": "alice 在线",
+      "steps": "friend.add ghost 与自己的用户名",
+      "expected": "两次都失败",
+      "actual": "不存在返回 User not found，添加自己被拒绝",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "id": "FN-CHAT-04",
+      "module": "好友与聊天",
+      "goal": "空消息被拒绝，超长消息截断到 4000",
+      "pre": "alice 与 bob 已是好友",
+      "steps": "发送空串，再发送 4001 个 a",
+      "expected": "空串失败；保存的文本长度为 4000",
+      "actual": "空消息被拒绝，4001 字符保存为 4000",
+      "pass": true,
+      "ms": 1
+    },
+    {
+      "id": "FN-CHAT-05",
+      "module": "好友与聊天",
+      "goal": "对方离线时消息仍可在重连后取回",
+      "pre": "双方是好友",
+      "steps": "关闭 bob，alice 发送，bob 用原 token 重连并取 history",
+      "expected": "离线期间 bob 收不到实时事件；重连后历史中有该消息",
+      "actual": "离线消息未实时推送，history 可以取回",
+      "pass": true,
+      "ms": 3
+    },
+    {
+      "id": "FN-CHAT-06",
+      "module": "好友与聊天",
+      "goal": "非好友不能读取历史",
+      "pre": "alice 与一个未加好友的新用户",
+      "steps": "新用户请求与 alice 的 history",
+      "expected": "请求失败",
+      "actual": "非好友读取历史被拒绝",
+      "pass": true,
+      "ms": 38
+    },
+    {
+      "id": "FN-MEET-01",
+      "module": "会议",
+      "goal": "会议号字符集、主动离开与离线邀请",
+      "pre": "alice 在会议中，bob 先在线后断开",
+      "steps": "创建会议、邀请在线 bob、bob 离开、再邀请离线 bob",
+      "expected": "会议号来自无歧义字符表；离开有通知；离线邀请 delivered=false",
+      "actual": "会议号 E3RSTU；在线邀请送达，离开有通知，离线邀请 delivered=false",
+      "pass": true,
+      "ms": 44
+    },
+    {
+      "id": "FN-MEET-02",
+      "module": "会议",
+      "goal": "第 9 个人不能加入",
+      "pre": "可再注册 7 个用户",
+      "steps": "连创建者共 8 人加入，第 9 人加入",
+      "expected": "前 8 人成功，第 9 人收到满员错误",
+      "actual": "8 人可以进入，第 9 人被拒绝",
+      "pass": true,
+      "ms": 295
+    },
+    {
+      "id": "FN-MEET-03",
+      "module": "会议",
+      "goal": "hello 带上 ICE 配置，ping 返回 pong",
+      "pre": "服务以 ICE_SERVERS 启动",
+      "steps": "查看 hello，发送 ping",
+      "expected": "iceServers 与环境变量一致，并收到 pong",
+      "actual": "hello.iceServers 正确，pong.n=7",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "id": "FN-WEB-01",
+      "module": "页面",
+      "goal": "已构建页面可以打开，目录穿越不会读到项目外文件",
+      "pre": "dist/index.html 存在",
+      "steps": "GET / 与编码后的穿越路径",
+      "expected": "首页 200 且含 ReliaTox；穿越请求不会返回 package.json 正文",
+      "actual": "首页 200，穿越路径未读出 package.json",
+      "pass": true,
+      "ms": 4
+    },
+    {
+      "id": "FN-SCH-01",
+      "module": "本地调度",
+      "goal": "三种策略与差链路的并发上限",
+      "pre": "不调用 DeepSeek",
+      "steps": "对 speed/fair/save、差链路和自适应并发计算上限",
+      "expected": "speed=4，fair=3，save=1；差链路 speed 降为 2；自适应值不超过策略上限",
+      "actual": "6 组并发上限与规则一致",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "id": "FN-SCH-02",
+      "module": "本地调度",
+      "goal": "差链路且没有本地文件句柄时给出安全回退",
+      "pre": "不调用 DeepSeek",
+      "steps": "构造一条中断传输且页面没有原文件，链路质量为差",
+      "expected": "不生成续传动作，提示重新选择文件，并建议省电策略",
+      "actual": "本地方案要求重选文件，并把策略降为省电",
+      "pass": true,
+      "ms": 1
+    },
+    {
+      "id": "FN-SCH-03",
+      "module": "本地调度",
+      "goal": "没有任务时不提出调整",
+      "pre": "传输列表为空",
+      "steps": "调用 buildLocalPlan",
+      "expected": "动作为空，并说明当前不需要调整",
+      "actual": "空列表返回一条“无需调整”说明",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "id": "FN-SCH-04",
+      "module": "显示格式",
+      "goal": "字节、精确数字和指纹缩写的边界",
+      "pre": "无",
+      "steps": "格式化 0、1023、1024、1MiB、1GiB 与 64 位指纹",
+      "expected": "单位切换正确，缩写保留首尾 8 位",
+      "actual": "字节单位、千分位和指纹缩写符合预期",
+      "pass": true,
+      "ms": 12
+    }
+  ]
+}
