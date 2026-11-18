@@ -1,5 +1,5 @@
-// 模糊测试：向本地临时服务发送畸形 HTTP / WebSocket / 二进制帧。
-// 不调用 DeepSeek。服务崩溃、请求挂死或出现 5xx 记为失败。
+// Fuzz testing: send malformed HTTP requests, WebSocket frames, and binary frames to a local temporary server.
+// DeepSeek is not called. A crash, a hung request, or a 5xx response is a failure.
 import os from 'node:os'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -27,19 +27,19 @@ function finish(code) {
     generatedAt: new Date().toISOString(),
   }
   try { fs.writeFileSync(outFile, JSON.stringify({ summary, crashes, findings }, null, 2)) } catch {}
-  log(`模糊测试 ${summary.passed ? '通过' : '失败'}：发送 ${sent}，崩溃 ${crashes.length}，异常响应 ${findings.length}`)
+  log(`Fuzz ${summary.passed ? 'passed' : 'failed'}: sent ${sent}, crashes ${crashes.length}, bad responses ${findings.length}`)
   if (crashes[0]) log(String(crashes[0].message).split('\n').slice(0, 6).join('\n'))
-  if (findings[0]) log(`例： ${findings[0].area} ${findings[0].input} ${findings[0].actual}`)
+  if (findings[0]) log(`Example: ${findings[0].area} ${findings[0].input} ${findings[0].actual}`)
   process.exit(code)
 }
 process.on('uncaughtException', (error) => {
   crashes.push({ kind: 'uncaughtException', message: error.stack || error.message })
-  log('崩溃: ' + error.message)
+  log('Crash: ' + error.message)
   finish(1)
 })
 process.on('unhandledRejection', (error) => {
   crashes.push({ kind: 'unhandledRejection', message: error?.stack || String(error) })
-  log('未处理拒绝: ' + (error?.message || error))
+  log('Unhandled rejection: ' + (error?.message || error))
   finish(1)
 })
 
@@ -94,7 +94,7 @@ async function http(method, urlPath, { body, token, raw = false } = {}) {
 const badHttp = (res) => res.status === 0 || res.status >= 500
 
 const reg = await http('POST', '/api/register', { body: { username: 'fuzz', password: 'fuzzpw' } })
-if (reg.status !== 200) throw new Error('无法准备模糊测试账号: ' + reg.text)
+if (reg.status !== 200) throw new Error('could not prepare the fuzz account: ' + reg.text)
 const alice = JSON.parse(reg.text)
 const bobReg = await http('POST', '/api/register', { body: { username: 'fuzzbob', password: 'fuzzpw' } })
 const bob = JSON.parse(bobReg.text)
@@ -103,14 +103,14 @@ const ws = new WebSocket(`ws://127.0.0.1:${port}/ws?token=${alice.token}`)
 const frames = []
 ws.on('message', (d, bin) => { if (!bin) frames.push(d.toString()) })
 await new Promise((resolve, reject) => {
-  const timer = setTimeout(() => reject(new Error('WebSocket 连接超时')), 3000)
+  const timer = setTimeout(() => reject(new Error('WebSocket connection timed out')), 3000)
   ws.once('open', () => { clearTimeout(timer); resolve() })
   ws.once('error', (error) => { clearTimeout(timer); reject(error) })
 })
 const helloRaw = await new Promise((resolve, reject) => {
   const hit = frames.find((f) => f.includes('"hello"'))
   if (hit) return resolve(hit)
-  const timer = setTimeout(() => reject(new Error('没有收到 hello')), 2000)
+  const timer = setTimeout(() => reject(new Error('hello was not received')), 2000)
   ws.on('message', (d, bin) => {
     if (bin) return
     const text = d.toString()
@@ -123,7 +123,7 @@ const helloRaw = await new Promise((resolve, reject) => {
 const hello = JSON.parse(helloRaw)
 await new Promise((resolve, reject) => {
   const rid = 1
-  const timer = setTimeout(() => reject(new Error('加好友超时')), 2000)
+  const timer = setTimeout(() => reject(new Error('adding a friend timed out')), 2000)
   const onMsg = (d, bin) => {
     if (bin) return
     let m
@@ -216,7 +216,7 @@ for (const raw of ['', 'null', '[]', '"x"', '{', '{]', '%%%']) {
   }
 }
 
-log('二进制帧')
+log('Binary frames')
 const badBins = [
   Buffer.alloc(0),
   Buffer.from([0, 0, 0, 1]),
@@ -254,3 +254,4 @@ if (!pong) note('health', 'ping 42', frames.slice(-3).join(' | ') || 'no pong', 
 ws.close()
 server.close()
 finish(crashes.length === 0 && findings.length === 0 ? 0 : 1)
+void hello
