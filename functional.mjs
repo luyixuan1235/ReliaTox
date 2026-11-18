@@ -1,6 +1,5 @@
-// 吴嘉伟负责的功能测试：账号、好友与聊天、会议、页面、本地调度。
-// 不含文件传输（FN-FILE-01～07 由周若曦的 file-transfer.mjs 覆盖）。
-// 在项目根目录执行：node server/test/functional.mjs
+// Functional tests owned by Wu Jiawei: accounts, friends and chat, meetings, pages, and local scheduling.
+// Run from the project root: node server/test/functional.mjs
 import os from 'node:os'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -74,7 +73,7 @@ class Peer {
     const hit = this.events.find(test)
     if (hit) return Promise.resolve(hit)
     return new Promise((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error('等待事件超时')), ms)
+      const t = setTimeout(() => reject(new Error('timed out waiting for an event')), ms)
       this.waiters.push({ test, resolve: (m) => (clearTimeout(t), resolve(m)) })
     })
   }
@@ -106,48 +105,48 @@ const toxOk = (id) => {
 }
 
 try {
-  console.log('账号与鉴权')
+  console.log('Accounts and sessions')
   await check({
-    id: 'FN-ACC-01', module: '账号', goal: '合法用户名与 6 位密码可以注册',
-    pre: '临时空库', steps: 'POST /api/register username=ab password=123456',
-    expected: '200，返回 token 与 76 位校验通过的 ID',
+    id: 'FN-ACC-01', module: 'Account', goal: 'A legal username and a 6-character password can register',
+    pre: 'Empty temporary database', steps: 'POST /api/register username=ab password=123456',
+    expected: '200, with a token and a 76-character ID whose checksum is valid',
   }, async () => {
     const r = await post('/api/register', { username: 'ab', password: '123456' })
     assert.equal(r.status, 200)
     toxOk(r.body.user.toxId)
-    return `200，ID 校验通过 ${r.body.user.toxId.slice(0, 8)}…`
+    return `200. ID checksum passed ${r.body.user.toxId.slice(0, 8)}…`
   })
   await check({
-    id: 'FN-ACC-02', module: '账号', goal: '用户名长度与字符等价类',
-    pre: '服务已启动', steps: '分别注册 1 位、21 位、空格、符号、20 位、中文、下划线与连字符',
-    expected: '非法输入 400；20 位、中文、下划线、连字符 200',
+    id: 'FN-ACC-02', module: 'Account', goal: 'Username length and character classes',
+    pre: 'Server is running', steps: 'Register names of length 1 and 21, names with a space or a symbol, a 20-character name, Chinese, underscore, and hyphen',
+    expected: 'Illegal names return 400; the 20-character name, Chinese, underscore, and hyphen return 200',
   }, async () => {
     const bad = ['a', 'a'.repeat(21), 'a b', 'ab!', '']
     for (const username of bad) {
       const r = await post('/api/register', { username, password: '123456' })
-      assert.equal(r.status, 400, `应拒绝 ${JSON.stringify(username)}`)
+      assert.equal(r.status, 400, `should reject ${JSON.stringify(username)}`)
     }
     for (const username of ['u'.repeat(20), '测试', 'ab_cd', 'ab-cd']) {
       const r = await post('/api/register', { username, password: '123456' })
-      assert.equal(r.status, 200, `应接受 ${username}`)
+      assert.equal(r.status, 200, `should accept ${username}`)
     }
-    return '5 个非法用户名均为 400，4 个合法用户名均为 200'
+    return 'Five illegal names returned 400. Four legal names returned 200.'
   })
   await check({
-    id: 'FN-ACC-03', module: '账号', goal: '密码长度边界',
-    pre: '用户名未占用', steps: '密码 5 位与 6 位各注册一次',
-    expected: '5 位 400，6 位 200',
+    id: 'FN-ACC-03', module: 'Account', goal: 'Password length boundary',
+    pre: 'Username is unused', steps: 'Register once with a 5-character password and once with 6',
+    expected: '5 characters return 400; 6 characters return 200',
   }, async () => {
     const short = await post('/api/register', { username: 'pw5', password: '12345' })
     const ok = await post('/api/register', { username: 'pw6', password: '123456' })
     assert.equal(short.status, 400)
     assert.equal(ok.status, 200)
-    return '5 位返回 400，6 位返回 200'
+    return '5 characters returned 400. 6 characters returned 200.'
   })
   await check({
-    id: 'FN-ACC-04', module: '账号', goal: '登录、会话与退出',
-    pre: '已有用户 ab', steps: '错误密码、错误用户、正确登录、GET /api/me、POST /api/logout、再用旧 token',
-    expected: '错误为 401；正确为 200；退出后旧 token 失效',
+    id: 'FN-ACC-04', module: 'Account', goal: 'Login, session, and logout',
+    pre: 'User ab already exists', steps: 'Wrong password, wrong user, correct login, GET /api/me, POST /api/logout, then reuse the old token',
+    expected: 'Errors are 401; success is 200; the old token is invalid after logout',
   }, async () => {
     const wrong = await post('/api/login', { username: 'ab', password: 'wrong!' })
     const missing = await post('/api/login', { username: 'nobody', password: '123456' })
@@ -162,30 +161,30 @@ try {
     assert.equal(me.body.user.username, 'ab')
     assert.equal(anon.status, 401)
     assert.equal(gone.status, 401)
-    return '错误登录 401，正确登录与 /api/me 200，退出后旧 token 401'
+    return 'Wrong login returned 401. Correct login and /api/me returned 200. The old token returned 401 after logout.'
   })
   await check({
-    id: 'FN-ACC-05', module: '账号', goal: '库中不保存明文密码',
-    pre: '已注册用户', steps: '读取临时 db.json',
-    expected: '文件不含 123456，含 salt 与 hash',
+    id: 'FN-ACC-05', module: 'Account', goal: 'The database does not store a plaintext password',
+    pre: 'A user is registered', steps: 'Read the temporary db.json',
+    expected: 'The file does not contain 123456 and does contain salt and hash',
   }, async () => {
     await new Promise((r) => setTimeout(r, 250))
     const text = fs.readFileSync(path.join(tmp, 'db.json'), 'utf8')
     assert.equal(text.includes('123456'), false)
     assert.match(text, /"salt":/)
     assert.match(text, /"hash":/)
-    return 'db.json 无明文密码，存在 salt 与 hash'
+    return 'db.json has no plaintext password. salt and hash are present.'
   })
   await check({
-    id: 'FN-ACC-06', module: '账号', goal: '非法 JSON 与未知接口',
-    pre: '服务已启动', steps: 'POST 非 JSON；GET /api/nope',
-    expected: '分别返回 400 与 404',
+    id: 'FN-ACC-06', module: 'Account', goal: 'Illegal JSON and an unknown route',
+    pre: 'Server is running', steps: 'POST a non-JSON body; GET /api/nope',
+    expected: '400 and 404 respectively',
   }, async () => {
     const r = await fetch(base + '/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{' })
     const missing = await get('/api/nope')
     assert.equal(r.status, 400)
     assert.equal(missing.status, 404)
-    return '非法 JSON 为 400，未知接口为 404'
+    return 'Illegal JSON returned 400. The unknown route returned 404.'
   })
 
   const alice = (await post('/api/register', { username: 'alice', password: 'alicepw' })).body
@@ -194,11 +193,11 @@ try {
   const A = await new Peer(alice.token).open()
   const B = await new Peer(bob.token).open()
 
-  console.log('好友、聊天、离线消息')
+  console.log('Friends, chat, and offline messages')
   await check({
-    id: 'FN-CHAT-01', module: '好友与聊天', goal: '用用户名加好友，重复添加不重复建关系',
-    pre: 'alice、bob 在线且还不是好友', steps: 'friend.add query=BoB，再添加一次',
-    expected: '第一次 already=false，第二次 already=true，bob 收到好友列表',
+    id: 'FN-CHAT-01', module: 'Friends and chat', goal: 'Add a friend by username; a repeat add does not create a second relationship',
+    pre: 'alice and bob are online and are not friends yet', steps: 'friend.add query=BoB, then add again',
+    expected: 'The first reply has already=false; the second has already=true; bob receives the friend list',
   }, async () => {
     const first = await A.req('friend.add', { query: 'BoB' })
     const seen = await B.waitFor((m) => m.t === 'friends' && m.friends.some((f) => f.username === 'alice'))
@@ -206,45 +205,45 @@ try {
     assert.equal(first.already, false)
     assert.equal(second.already, true)
     assert.equal(seen.friends.length, 1)
-    return '用户名不区分大小写，重复添加返回 already=true'
+    return 'The username match ignores case. The repeat add returned already=true.'
   })
   await check({
-    id: 'FN-CHAT-02', module: '好友与聊天', goal: '76 位 ID 与 64 位前缀可以找到用户',
-    pre: 'carol 已注册，尚未与 alice 成为好友', steps: '用完整 ID 添加，再单独解析 64 位前缀',
-    expected: '添加成功；64 位前缀指向同一 toxId',
+    id: 'FN-CHAT-02', module: 'Friends and chat', goal: 'A 76-character ID and a 64-character prefix both find the user',
+    pre: 'carol is registered and is not yet friends with alice', steps: 'Add by the full ID, then resolve the 64-character prefix alone',
+    expected: 'The add succeeds; the 64-character prefix points at the same toxId',
   }, async () => {
     const added = await A.req('friend.add', { query: carol.user.toxId })
     assert.equal(added.friend.username, 'carol')
     const prefix = carol.user.toxId.slice(0, 64)
     const again = await B.req('friend.add', { query: prefix })
     assert.equal(again.friend.toxId, carol.user.toxId)
-    return '完整 ID 与 64 位前缀都定位到 carol'
+    return 'Both the full ID and the 64-character prefix resolved to carol.'
   })
   await check({
-    id: 'FN-CHAT-03', module: '好友与聊天', goal: '不存在的用户和自己都不能添加',
-    pre: 'alice 在线', steps: 'friend.add ghost 与自己的用户名',
-    expected: '两次都失败',
+    id: 'FN-CHAT-03', module: 'Friends and chat', goal: 'A missing user and oneself cannot be added',
+    pre: 'alice is online', steps: 'friend.add ghost, and friend.add with alice\'s own username',
+    expected: 'Both attempts fail',
   }, async () => {
     await assert.rejects(A.req('friend.add', { query: 'ghost' }), /not found/i)
     await assert.rejects(A.req('friend.add', { query: 'alice' }), /yourself/i)
-    return '不存在返回 User not found，添加自己被拒绝'
+    return 'The missing user returned User not found. Adding oneself was rejected.'
   })
   await check({
-    id: 'FN-CHAT-04', module: '好友与聊天', goal: '空消息被拒绝，超长消息截断到 4000',
-    pre: 'alice 与 bob 已是好友', steps: '发送空串，再发送 4001 个 a',
-    expected: '空串失败；保存的文本长度为 4000',
+    id: 'FN-CHAT-04', module: 'Friends and chat', goal: 'An empty message is rejected; an over-long message is cut to 4000',
+    pre: 'alice and bob are friends', steps: 'Send an empty string, then send 4001 a\'s',
+    expected: 'The empty string fails; the stored text length is 4000',
   }, async () => {
     await assert.rejects(A.req('msg.send', { to: bob.user.id, text: '   ' }), /empty/i)
     const sent = await A.req('msg.send', { to: bob.user.id, text: 'a'.repeat(4001) })
     assert.equal(sent.msg.text.length, 4000)
     const got = await B.waitFor((m) => m.t === 'msg' && m.msg.text.length === 4000)
     assert.equal(got.msg.text, 'a'.repeat(4000))
-    return '空消息被拒绝，4001 字符保存为 4000'
+    return 'The empty message was rejected. 4001 characters were stored as 4000.'
   })
   await check({
-    id: 'FN-CHAT-05', module: '好友与聊天', goal: '对方离线时消息仍可在重连后取回',
-    pre: '双方是好友', steps: '关闭 bob，alice 发送，bob 用原 token 重连并取 history',
-    expected: '离线期间 bob 收不到实时事件；重连后历史中有该消息',
+    id: 'FN-CHAT-05', module: 'Friends and chat', goal: 'A message sent while the peer is offline can be read after reconnect',
+    pre: 'The two users are friends', steps: 'Close bob, alice sends, bob reconnects with the same token and requests history',
+    expected: 'bob receives no live event while offline; the message is in history after reconnect',
   }, async () => {
     await B.close()
     await A.req('msg.send', { to: bob.user.id, text: 'offline-note' })
@@ -254,27 +253,27 @@ try {
     assert.equal(live, undefined)
     assert.ok(hist.messages.some((m) => m.text === 'offline-note'))
     Object.assign(B, B2)
-    return '离线消息未实时推送，history 可以取回'
+    return 'The offline message was not pushed live. history returned it.'
   })
   await check({
-    id: 'FN-CHAT-06', module: '好友与聊天', goal: '非好友不能读取历史',
-    pre: 'alice 与一个未加好友的新用户', steps: '新用户请求与 alice 的 history',
-    expected: '请求失败',
+    id: 'FN-CHAT-06', module: 'Friends and chat', goal: 'A non-friend cannot read history',
+    pre: 'alice and a newly registered user who is not a friend', steps: 'The new user requests history with alice',
+    expected: 'The request fails',
   }, async () => {
     const dave = (await post('/api/register', { username: 'dave', password: 'davepw' })).body
     const D = await new Peer(dave.token).open()
     await assert.rejects(D.req('history', { with: alice.user.id }), /friend/i)
     await D.close()
-    return '非好友读取历史被拒绝'
+    return 'Reading history as a non-friend was rejected.'
   })
 
-  console.log('会议信令')
+  console.log('Meeting signaling')
   await check({
-    id: 'FN-MEET-01', module: '会议', goal: '会议号字符集、主动离开与离线邀请',
-    pre: 'alice 在会议中，bob 先在线后断开', steps: '创建会议、邀请在线 bob、bob 离开、再邀请离线 bob',
-    expected: '会议号来自无歧义字符表；离开有通知；离线邀请 delivered=false',
+    id: 'FN-MEET-01', module: 'Meeting', goal: 'Meeting-code alphabet, leaving, and an offline invite',
+    pre: 'alice is in a meeting; bob is online and then disconnects', steps: 'Create a meeting, invite online bob, bob leaves, then invite offline bob',
+    expected: 'The code uses the unambiguous alphabet; leaving is announced; the offline invite has delivered=false',
   }, async () => {
-    const created = await A.req('meet.create', { title: '功能测试' })
+    const created = await A.req('meet.create', { title: 'functional test' })
     assert.match(created.room.id, /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/)
     const online = await A.req('meet.invite', { room: created.room.id, to: bob.user.id })
     assert.equal(online.delivered, true)
@@ -287,16 +286,16 @@ try {
     assert.equal(offline.delivered, false)
     const frank = (await post('/api/register', { username: 'frank', password: 'frankpw' })).body
     await assert.rejects(A.req('meet.invite', { room: created.room.id, to: frank.user.id }), /friend/i)
-    return `会议号 ${created.room.id}；在线邀请送达，离开有通知，离线邀请 delivered=false`
+    return `Meeting code ${created.room.id}. The online invite was delivered, leaving was announced, and the offline invite had delivered=false.`
   })
   await check({
-    id: 'FN-MEET-02', module: '会议', goal: '第 9 个人不能加入',
-    pre: '可再注册 7 个用户', steps: '连创建者共 8 人加入，第 9 人加入',
-    expected: '前 8 人成功，第 9 人收到满员错误',
+    id: 'FN-MEET-02', module: 'Meeting', goal: 'A ninth person cannot join',
+    pre: 'Seven more users can be registered', steps: 'Eight people including the creator join; a ninth person joins',
+    expected: 'The first eight succeed; the ninth receives a room-full error',
   }, async () => {
     const host = await post('/api/register', { username: 'host', password: 'hostpw' })
     const H = await new Peer(host.body.token).open()
-    const room = await H.req('meet.create', { title: '容量' })
+    const room = await H.req('meet.create', { title: 'capacity' })
     const peers = []
     for (let i = 1; i <= 7; i++) {
       const u = await post('/api/register', { username: `p${i}`, password: '123456' })
@@ -310,32 +309,32 @@ try {
     await N.close()
     for (const peer of peers) await peer.close()
     await H.close()
-    return '8 人可以进入，第 9 人被拒绝'
+    return 'Eight people entered. The ninth was rejected.'
   })
   await check({
-    id: 'FN-MEET-03', module: '会议', goal: 'hello 带上 ICE 配置，ping 返回 pong',
-    pre: '服务以 ICE_SERVERS 启动', steps: '查看 hello，发送 ping',
-    expected: 'iceServers 与环境变量一致，并收到 pong',
+    id: 'FN-MEET-03', module: 'Meeting', goal: 'hello carries ICE settings, and ping returns pong',
+    pre: 'The server is started with ICE_SERVERS', steps: 'Read hello, then send ping',
+    expected: 'iceServers matches the environment variable, and a pong arrives',
   }, async () => {
     assert.equal(A.hello.iceServers[0].urls, 'stun:stun.example.com:19302')
     A.ws.send(JSON.stringify({ t: 'ping', n: 7 }))
     const pong = await A.waitFor((m) => m.t === 'pong' && m.n === 7)
     assert.equal(pong.n, 7)
-    return 'hello.iceServers 正确，pong.n=7'
+    return 'hello.iceServers was correct. pong.n=7.'
   })
 
-  console.log('静态页面与本地调度规则')
+  console.log('Static page and local scheduling')
   await check({
-    id: 'FN-WEB-01', module: '页面', goal: '已构建页面可以打开，目录穿越不会读到项目外文件',
-    pre: 'dist/index.html 存在', steps: 'GET / 与编码后的穿越路径',
-    expected: '首页 200 且含 ReliaTox；穿越请求不会返回 package.json 正文',
+    id: 'FN-WEB-01', module: 'Page', goal: 'The built page opens, and a traversal path does not read a file outside the project',
+    pre: 'dist/index.html exists', steps: 'GET / and an encoded traversal path',
+    expected: 'The home page is 200 and contains ReliaTox; the traversal request does not return the body of package.json',
   }, async () => {
     const home = await get('/')
     const sneak = await get('/..%2fpackage.json')
     assert.equal(home.status, 200)
     assert.match(String(home.body), /ReliaTox/)
     assert.equal(String(sneak.body).includes('"reliatox-web"'), false)
-    return '首页 200，穿越路径未读出 package.json'
+    return 'The home page was 200. The traversal path did not return package.json.'
   })
 
   globalThis.sessionStorage = { getItem: () => null, setItem() {}, removeItem() {} }
@@ -344,9 +343,9 @@ try {
   const { formatBytes, exactBytes, shortHash } = await import('../../src/lib/format.js')
 
   await check({
-    id: 'FN-SCH-01', module: '本地调度', goal: '三种策略与差链路的并发上限',
-    pre: '不调用 DeepSeek', steps: '对 speed/fair/save、差链路和自适应并发计算上限',
-    expected: 'speed=4，fair=3，save=1；差链路 speed 降为 2；自适应值不超过策略上限',
+    id: 'FN-SCH-01', module: 'Local scheduling', goal: 'Concurrency limits for three policies and a poor link',
+    pre: 'DeepSeek is not called', steps: 'Compute limits for speed, fair, and save, a poor link, and adaptive concurrency',
+    expected: 'speed=4, fair=3, save=1; poor-link speed drops to 2; the adaptive value does not exceed the policy limit',
   }, async () => {
     assert.equal(concurrencyLimit({ policy: 'speed', quality: '好', adaptiveConcurrency: null }), 4)
     assert.equal(concurrencyLimit({ policy: 'fair', quality: '好', adaptiveConcurrency: null }), 3)
@@ -354,12 +353,12 @@ try {
     assert.equal(concurrencyLimit({ policy: 'speed', quality: '差', adaptiveConcurrency: null }), 2)
     assert.equal(concurrencyLimit({ policy: 'speed', quality: '好', adaptiveConcurrency: 9 }), 4)
     assert.equal(concurrencyLimit({ policy: 'fair', quality: '差', adaptiveConcurrency: 3 }), 1)
-    return '6 组并发上限与规则一致'
+    return 'All six concurrency limits matched the rules.'
   })
   await check({
-    id: 'FN-SCH-02', module: '本地调度', goal: '差链路且没有本地文件句柄时给出安全回退',
-    pre: '不调用 DeepSeek', steps: '构造一条中断传输且页面没有原文件，链路质量为差',
-    expected: '不生成续传动作，提示重新选择文件，并建议省电策略',
+    id: 'FN-SCH-02', module: 'Local scheduling', goal: 'A poor link with no local file handle gets a safe fallback',
+    pre: 'DeepSeek is not called', steps: 'Build one interrupted transfer whose page has no original file, with poor link quality',
+    expected: 'No resume action is produced; the plan asks the user to pick the file again and suggests power saving',
   }, async () => {
     setState({
       me: { id: 'u1' }, quality: '差', rtt: 320, policy: 'speed',
@@ -370,23 +369,23 @@ try {
     assert.equal(plan.actions.some((a) => a.type === 'resume'), false)
     assert.equal(plan.actions.some((a) => a.type === 'policy' && a.policy === 'save'), true)
     assert.match(plan.items.join('\n'), /original file/i)
-    return '本地方案要求重选文件，并把策略降为省电'
+    return 'The local plan required picking the file again and lowered the policy to power saving.'
   })
   await check({
-    id: 'FN-SCH-03', module: '本地调度', goal: '没有任务时不提出调整',
-    pre: '传输列表为空', steps: '调用 buildLocalPlan',
-    expected: '动作为空，并说明当前不需要调整',
+    id: 'FN-SCH-03', module: 'Local scheduling', goal: 'An empty task list proposes no change',
+    pre: 'The transfer list is empty', steps: 'Call buildLocalPlan',
+    expected: 'The action list is empty, and the plan says no change is needed',
   }, async () => {
     setState({ me: { id: 'u1' }, quality: '好', policy: 'fair', transfers: {} })
     const plan = buildLocalPlan()
     assert.deepEqual(plan.actions, [])
     assert.match(plan.items[0], /No transfer adjustments/)
-    return '空列表返回一条“无需调整”说明'
+    return 'The empty list returned one note that no adjustment was needed.'
   })
   await check({
-    id: 'FN-SCH-04', module: '显示格式', goal: '字节、精确数字和指纹缩写的边界',
-    pre: '无', steps: '格式化 0、1023、1024、1MiB、1GiB 与 64 位指纹',
-    expected: '单位切换正确，缩写保留首尾 8 位',
+    id: 'FN-SCH-04', module: 'Display format', goal: 'Boundaries for bytes, exact numbers, and fingerprint abbreviations',
+    pre: 'None', steps: 'Format 0, 1023, 1024, 1MiB, 1GiB, and a 64-character fingerprint',
+    expected: 'Unit changes are correct; the abbreviation keeps 8 characters at each end',
   }, async () => {
     assert.equal(formatBytes(0), '0 B')
     assert.equal(formatBytes(1023), '1023 B')
@@ -395,7 +394,7 @@ try {
     assert.equal(formatBytes(1024 ** 3), '1.00 GB')
     assert.equal(exactBytes(1507328), '1,507,328 B')
     assert.equal(shortHash('a'.repeat(64)), 'aaaaaaaa…aaaaaaaa')
-    return '字节单位、千分位和指纹缩写符合预期'
+    return 'Byte units, thousands separators, and the fingerprint abbreviation matched the expected text.'
   })
 
   const home = await get('/')
@@ -405,7 +404,7 @@ try {
   const failed = cases.length - passed
   const summary = { total: cases.length, passed, failed, generatedAt: new Date().toISOString(), dataDir: tmp }
   fs.writeFileSync(path.join(outDir, 'wu-functional-results.json'), JSON.stringify({ summary, cases }, null, 2))
-  console.log(`\n功能测试 ${passed}/${cases.length} 通过`)
+  console.log(`\nFunctional tests ${passed}/${cases.length} passed`)
   server.close()
   await new Promise((r) => setTimeout(r, 250))
   fs.rmSync(tmp, { recursive: true, force: true })
@@ -413,3 +412,4 @@ try {
 }
 
 void hub
+void sha
