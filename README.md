@@ -1,12 +1,12 @@
 # ReliaTox
 
-聊天、文件传输、视频会议。文件传到一半断了，重新连上后从已确认的位置继续，最后用 SHA-256 校验。
+ReliaTox supports chat, file transfer, and video conferencing. If a file transfer is interrupted, the sender can reconnect and continue from the last confirmed position. The server verifies the completed file using SHA-256.
 
-这是一个 **Node 服务端 + 浏览器前端** 的项目，需要先启动服务端。
+ReliaTox consists of a **Node.js server and a browser-based frontend**. The server must be running before the application can be used.
 
-## 运行
+## Running the Application
 
-需要 Node.js 20 或更高版本。
+ReliaTox requires Node.js 20 or later.
 
 ```bash
 npm install
@@ -14,78 +14,117 @@ npm run build
 npm start
 ```
 
-浏览器打开 <http://localhost:8787>。
+Open [http://localhost:8787](http://localhost:8787) in a browser.
 
-> 摄像头和麦克风只能在 `localhost` 或 HTTPS 页面使用。用 `http://局域网IP:8787` 打开时，聊天和传文件正常，但会议里打不开摄像头。
+> Browsers allow camera and microphone access only on `localhost` or HTTPS pages. If you open the application through `http://LAN-IP:8787`, chat and file transfer will work, but the meeting feature will not be able to access the camera.
 
-开发时用两个终端：`npm start` 起服务端，`npm run dev` 起前端（<http://localhost:5173>，会把 `/api` 和 `/ws` 转发到 8787）。
+For development, use two terminals:
 
-## 一个人怎么测试
+```bash
+# Terminal 1: start the server
+npm start
 
-1. 用普通窗口打开页面，注册 `alice`。
-2. 再开一个**无痕窗口**（或另一个浏览器）打开同一地址，注册 `bob`。登录状态存在 `sessionStorage` 里，所以同一浏览器的不同标签页也是不同账号。
-3. alice 在“通讯录”里输入 `bob` 添加好友，之后就可以聊天、发文件、拉会议。
+# Terminal 2: start the frontend development server
+npm run dev
+```
 
-## 功能
+The development frontend runs at [http://localhost:5173](http://localhost:5173) and proxies `/api` and `/ws` requests to port `8787`.
 
-| 功能 | 实现 |
+## Testing with Two Accounts
+
+You can test the application on one computer:
+
+1. Open the application in a regular browser window and register an account named `alice`.
+2. Open the application in a private window or another browser and register an account named `bob`.
+3. The login session is stored in `sessionStorage`, so separate browser tabs or windows can use different accounts.
+4. In the Contacts page, Alice can search for `bob` and add Bob as a friend.
+5. The two accounts can then exchange messages and files or start a meeting.
+
+## Features
+
+| Feature | Implementation |
 | --- | --- |
-| 账号 | 用户名 + 密码注册、登录。密码用 scrypt 加盐哈希保存，登录态用随机令牌。 |
-| 好友与聊天 | 用用户名或 76 位 ID 加好友；消息实时送达，离线消息保存在服务端，上线后可见。 |
-| 文件传输 | 对方点“接收”后开始分块传输；收完后服务端核对 SHA-256，一致才改成正式文件，不一致就丢弃。 |
-| 断点续传 | 服务端账本记录每个文件已确认的字节数。断线后重新连接，从这个位置继续，只发送剩下的部分。 |
-| 自适应调度 | 速度 / 公平 / 省电三种策略控制并发数；按实测 RTT 判断链路质量，差时自动降低并发；可设置发送限速。 |
-| 智能方案 | 读取当前真实的传输状态，用本地规则给出调整建议（先续传哪个、让谁让路），确认后才执行。没有接入大模型。 |
-| 视频会议 | 新建会议得到 6 位会议号；输入会议号加入，或在会议里邀请好友。摄像头、麦克风、屏幕共享、静音状态同步、说话指示。最多 8 人。 |
-| 语音 / 视频通话 | 聊天窗口里的电话和摄像头按钮：新开一个会议并邀请对方。 |
+| Accounts | Users can register and log in with a username and password. Passwords are stored as salted scrypt hashes, and login sessions use random tokens. |
+| Friends and chat | Users can add friends using a username or a 76-character ID. Messages are delivered in real time. Offline messages are stored on the server and become available when the user reconnects. |
+| File transfer | The transfer begins after the recipient accepts the file. The sender transmits the file in chunks. After receiving all chunks, the server verifies the SHA-256 hash. It keeps the completed file only if the hashes match. |
+| Resumable transfer | The server maintains a transfer ledger that records the confirmed byte offset of each file. After a disconnection, the sender resumes from this offset and sends only the remaining bytes. |
+| Adaptive scheduling | Speed, Fairness, and Power Saving policies control the number of concurrent transfers. The client measures RTT to evaluate link quality and reduces concurrency when the connection is poor. Users can also set an upload speed limit. |
+| Smart plan | Local rules analyze the current transfer state and suggest adjustments, such as which interrupted transfer to resume first or which task should receive priority. The system applies a plan only after user confirmation. This feature does not use a large language model. |
+| Video conferencing | Users can create a meeting with a six-character meeting code, enter a code to join a meeting, or invite a friend. Meetings support camera, microphone, screen sharing, mute-state synchronization, and active-speaker indication. Each meeting supports up to eight participants. |
+| Voice and video calls | The phone and camera buttons in the chat view create a new meeting and invite the selected friend. |
 
-## 验证断点续传
+## Verifying Resumable File Transfer
 
-在“传输”页的“续传验证”里实时显示数字，数据来自服务端账本：
+The Transfer page displays resume-verification data from the server-side transfer ledger.
 
-1. alice 给 bob 发一个较大的文件（几十 MB 以上），bob 点“接收”。在“传输”页把发送限速调到 1 MB/s，便于观察。
-2. 传到约一半时点“断开网络”，记下此时已确认的偏移 **A**。
-3. 点“恢复连接”，在弹窗里确认续传。客户端从 A 继续，只发送 **B**。
-4. 核对 **A + B = 文件大小**，并且发送端与接收端的 SHA-256 一致。
+1. Alice sends Bob a large file, preferably several dozen megabytes or more.
+2. Bob accepts the transfer.
+3. On the Transfer page, set the upload speed limit to `1 MB/s` so that the transfer progress is easier to observe.
+4. When approximately half of the file has been transferred, click **Disconnect Network**.
+5. Record the confirmed offset as **A**.
+6. Click **Reconnect** and confirm that the transfer should resume.
+7. The client resumes from offset **A** and sends only the remaining bytes, recorded as **B**.
+8. Verify the following condition:
 
-## 测试
+```text
+A + B = File Size
+```
+
+The sender's SHA-256 value must also match the SHA-256 value of the file received by the server.
+
+## Testing
+
+Run the automated tests with:
 
 ```bash
 npm test
 ```
 
-启动一个临时服务端，用真实的 WebSocket 连接跑完：注册登录、好友、聊天、传一半后断线、续传、A + B = 大小、SHA-256 不一致时拒绝、会议信令。
+The test suite starts a temporary server and establishes real WebSocket connections. It covers:
 
-## 局限
+- Account registration and login
+- Friend management
+- Real-time messaging
+- File transfer interruption
+- Transfer resumption
+- Verification that `A + B = File Size`
+- Rejection of files with mismatched SHA-256 hashes
+- WebRTC meeting signaling
 
-- 这是一个**经服务端中转**的系统，不是点对点网络，也没有接入 toxcore。ID 是注册时服务端生成的，格式与 Tox ID 相同。
-- 聊天和文件内容没有端到端加密，服务端能看到。
-- 会议的音视频是浏览器之间的 WebRTC 直连，服务端只转发信令。默认没有配置 STUN/TURN，所以只保证同一局域网或本机内连通。跨网络使用时设置环境变量 `ICE_SERVERS`，例如：
+## Limitations
 
-  ```bash
-  ICE_SERVERS='[{"urls":"stun:stun.l.google.com:19302"}]' npm start
-  ```
-- 页面刷新后，浏览器拿不到之前选的文件，续传时需要重新选择**同一个文件**（会校验指纹，不是同一个文件会拒绝）。
-- 数据存放在 `server/data/`（账号、消息、传输账本、已接收的文件）。
+- ReliaTox relays file transfers through the server. It does not provide peer-to-peer file transfer and does not integrate `toxcore`. The server generates IDs during registration using the same format as Tox IDs.
+- Chat messages and file contents do not use end-to-end encryption. The server can access their contents.
+- Meeting media uses direct WebRTC connections between browsers. The server only relays signaling messages.
+- The default configuration does not include STUN or TURN servers. Therefore, meeting connectivity is guaranteed only on the same device or local network.
+- To support meetings across different networks, configure the `ICE_SERVERS` environment variable. For example:
 
-## 配置
-
-| 环境变量 | 默认值 | 说明 |
-| --- | --- | --- |
-| `PORT` | `8787` | 监听端口 |
-| `HOST` | `127.0.0.1` | 监听地址；要让局域网内其他设备访问，设为 `0.0.0.0` |
-| `RELIATOX_DATA` | `server/data` | 数据目录 |
-| `ICE_SERVERS` | 空 | WebRTC 的 STUN/TURN，JSON 数组 |
-
-## 目录
-
+```bash
+ICE_SERVERS='[{"urls":"stun:stun.l.google.com:19302"}]' npm start
 ```
+
+- After the page is refreshed, the browser can no longer access the previously selected file. To resume the transfer, the user must select the same file again. ReliaTox verifies its fingerprint and rejects a different file.
+- Application data is stored in `server/data/`, including accounts, messages, transfer records, and received files.
+
+## Configuration
+
+| Environment Variable | Default Value | Description |
+| --- | --- | --- |
+| `PORT` | `8787` | Port used by the server |
+| `HOST` | `127.0.0.1` | Server address. Set it to `0.0.0.0` to allow other devices on the local network to connect. |
+| `RELIATOX_DATA` | `server/data` | Directory used for persistent application data |
+| `ICE_SERVERS` | Empty | JSON array containing WebRTC STUN or TURN server configurations |
+
+## Project Structure
+
+```text
 server/
-  index.js    HTTP（注册登录、下载、静态页面）
-  hub.js      WebSocket：在线状态、聊天、传输账本、会议信令
-  store.js    账号、消息、账本的持久化
-  test/       端到端测试
+  index.js    HTTP endpoints for registration, login, downloads, and static files
+  hub.js      WebSocket hub for presence, chat, transfer records, and meeting signaling
+  store.js    Persistent storage for accounts, messages, and transfer records
+  test/       End-to-end tests
+
 src/
-  net/        客户端：连接、传输调度、会议（WebRTC）、状态
-  views/      界面
+  net/        Client connection, transfer scheduling, WebRTC meetings, and state
+  views/      User interface components
 ```
