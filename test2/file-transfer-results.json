@@ -1,0 +1,232 @@
+{
+  "owner": "Ruoxi Zhou",
+  "scope": "File Transfer and Resumable Transmission",
+  "summary": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "generatedAt": "2026-11-16T14:13:39.453Z"
+  },
+  "cases": [
+    {
+      "id": "FN-FILE-01",
+      "module": "File Transfer",
+      "goal": "File name path characters are sanitized; the same file obtains the same ID",
+      "pre": "Alice and Bob are friends",
+      "steps": "Offer ../../secret?.bin twice, size 4, same fingerprint",
+      "expected": "File name contains no path or question mark; IDs are identical for both offers",
+      "actual": "Sanitized file name is secret_.bin, both IDs match",
+      "pass": true,
+      "ms": 2
+    },
+    {
+      "id": "FN-FILE-02",
+      "module": "File Transfer",
+      "goal": "File size boundary checks and invalid SHA-256 fingerprint validation",
+      "pre": "Both users are friends",
+      "steps": "Offer files of size 0, 1, 20GiB, 20GiB+1, and an invalid SHA-256 hash",
+      "expected": "Size 0, oversized files and invalid fingerprints are rejected; 1-byte and 20GiB offers succeed",
+      "actual": "Zero-byte, oversized and invalid-fingerprint offers are rejected; 1-byte and 20GiB offers can be created",
+      "pass": true,
+      "ms": 1
+    },
+    {
+      "id": "FN-FILE-03",
+      "module": "File Transfer",
+      "goal": "Non-friends cannot send files; receivers cannot initiate transmission on behalf of sender",
+      "pre": "Two users are not mutual friends",
+      "steps": "Send file offer to non-friend; receiver calls file.start",
+      "expected": "Both operations fail",
+      "actual": "Offer to non-friend rejected; receiver cannot invoke file.start",
+      "pass": true,
+      "ms": 41
+    },
+    {
+      "id": "FN-FILE-04",
+      "module": "File Transfer",
+      "goal": "Incomplete transfer cannot be finished; canceled transfer cannot be downloaded as completed",
+      "pre": "An accepted but unfinished file transfer exists",
+      "steps": "Call finish directly; cancel transfer; attempt download",
+      "expected": "finish fails; state becomes canceled after cancel; download returns 409",
+      "actual": "finish on incomplete transfer rejected; download returns 409 after cancellation",
+      "pass": true,
+      "ms": 160
+    },
+    {
+      "id": "FN-FILE-05",
+      "module": "File Transfer",
+      "goal": "Re-offer with identical metadata after cancellation clears old progress",
+      "pre": "Previous file with same fingerprint was canceled in FN-FILE-04",
+      "steps": "Re-offer with same metadata and start transfer",
+      "expected": "confirmed offset resets to 0, transfer ready to restart",
+      "actual": "Confirmed offset resets to zero after re-offer",
+      "pass": true,
+      "ms": 2
+    },
+    {
+      "id": "FN-FILE-06",
+      "module": "File Transfer",
+      "goal": "The same file cannot be sent concurrently from two client windows",
+      "pre": "Alice has two active connections; file offer is accepted",
+      "steps": "Call file.start from both connections",
+      "expected": "The second start request is rejected",
+      "actual": "Transmission from the second window is rejected",
+      "pass": true,
+      "ms": 7
+    },
+    {
+      "id": "FN-FILE-07",
+      "module": "File Transfer",
+      "goal": "Sender and receiver may download completed file; third parties cannot",
+      "pre": "A 1-byte file can finish transmission",
+      "steps": "Download by sender, receiver and an unrelated third user after completion",
+      "expected": "Sender and receiver get 200 response with matching bytes; third party gets 404",
+      "actual": "Sender and receiver download content 'Z'; outsider receives 404; completed file cannot be canceled",
+      "pass": true,
+      "ms": 8
+    },
+    {
+      "id": "E2E-13",
+      "module": "File Transfer",
+      "goal": "Offer generates valid file ID",
+      "pre": "Users are mutual friends",
+      "steps": "Offer an approximately 3MB file",
+      "expected": "64-character hex ID, state = offered",
+      "actual": "Offer generates 32-byte file ID, state = offered",
+      "pass": true,
+      "ms": 1
+    },
+    {
+      "id": "E2E-14",
+      "module": "File Transfer",
+      "goal": "Transmission cannot start before receiver accepts offer",
+      "pre": "File state is offered",
+      "steps": "Invoke file.start",
+      "expected": "Operation fails",
+      "actual": "Transmission cannot start before receiver accepts",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "id": "E2E-15",
+      "module": "Resumable Transmission",
+      "goal": "Server confirms received offset after partial upload",
+      "pre": "Receiver has accepted the file offer",
+      "steps": "Send 1507328 bytes",
+      "expected": "confirmed value equals uploaded byte count",
+      "actual": "1507328 bytes sent; server confirmed offset = 1507328",
+      "pass": true,
+      "ms": 156
+    },
+    {
+      "id": "E2E-16",
+      "module": "Resumable Transmission",
+      "goal": "Confirmed offset persists after sender disconnects",
+      "pre": "1507328 bytes confirmed",
+      "steps": "Close sender connection",
+      "expected": "State becomes interrupted, offset preserved",
+      "actual": "State changes to interrupted after sender disconnect; confirmed offset retained",
+      "pass": true,
+      "ms": 3
+    },
+    {
+      "id": "E2E-17",
+      "module": "Resumable Transmission",
+      "goal": "Transfer record remains available after reconnection",
+      "pre": "Sender connection closed",
+      "steps": "Reconnect using original token",
+      "expected": "Confirmed offset 1507328 is returned in hello message",
+      "actual": "Confirmed offset is preserved in transfer record after reconnection",
+      "pass": true,
+      "ms": 3
+    },
+    {
+      "id": "E2E-18",
+      "module": "Resumable Transmission",
+      "goal": "Data blocks with wrong offset are rejected",
+      "pre": "Resume offset is 1507328",
+      "steps": "Intentionally send block starting from incorrect offset",
+      "expected": "Server replies with correct resume offset",
+      "actual": "Misaligned block rejected; server responds with valid offset",
+      "pass": true,
+      "ms": 2
+    },
+    {
+      "id": "E2E-19",
+      "module": "Resumable Transmission",
+      "goal": "SHA-256 hash matches after resume completes",
+      "pre": "Resume from confirmed offset",
+      "steps": "Send remaining bytes and call finish",
+      "expected": "state=done and hashOk=true",
+      "actual": "Transfer finished after resume; server-side SHA-256 matches original file",
+      "pass": true,
+      "ms": 20
+    },
+    {
+      "id": "E2E-20",
+      "module": "Resumable Transmission",
+      "goal": "Sum of bytes from two sessions equals total file size",
+      "pre": "Two separate transmission sessions exist",
+      "steps": "Check starting offset and bytes sent in second session",
+      "expected": "1507328 + 1650745 = 3158073",
+      "actual": "A(1507328) + B(1650745) = 3158073; B is far smaller than full file size",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "id": "E2E-21",
+      "module": "File Transfer",
+      "goal": "Downloaded content on receiver side is identical to original file",
+      "pre": "Transfer completed",
+      "steps": "GET /api/files/:id",
+      "expected": "200 response and SHA-256 matches original",
+      "actual": "Bytes downloaded by receiver exactly match original file",
+      "pass": true,
+      "ms": 12
+    },
+    {
+      "id": "E2E-22",
+      "module": "File Transfer",
+      "goal": "Unrelated users cannot download the file",
+      "pre": "Carol is not the sender or receiver",
+      "steps": "Carol tries to download the file",
+      "expected": "404 response",
+      "actual": "Unauthorized third user download blocked",
+      "pass": true,
+      "ms": 1
+    },
+    {
+      "id": "E2E-23",
+      "module": "File Transfer",
+      "goal": "Transfer rejected if final hash mismatches declared fingerprint",
+      "pre": "An incorrect SHA-256 fingerprint was declared",
+      "steps": "Complete transfer and call finish",
+      "expected": "state=failed, hashOk=false",
+      "actual": "Content SHA-256 inconsistent with declared hash; state set to failed",
+      "pass": true,
+      "ms": 2
+    },
+    {
+      "id": "E2E-24",
+      "module": "File Transfer",
+      "goal": "Files failing hash check are not stored in received directory",
+      "pre": "Previous transfer failed hash validation",
+      "steps": "Inspect received folder",
+      "expected": "bad.bin does not exist",
+      "actual": "Failed file is not saved into received directory",
+      "pass": true,
+      "ms": 0
+    },
+    {
+      "id": "E2E-25",
+      "module": "Resumable Transmission",
+      "goal": "Size of partial temporary file on disk matches ledger confirmed offset",
+      "pre": "Partial bytes written and connection closed",
+      "steps": "Compare partial file size and confirmed offset in ledger",
+      "expected": "Values are equal",
+      "actual": "Size of partial file on disk matches confirmed offset stored in ledger",
+      "pass": true,
+      "ms": 458
+    }
+  ]
+}

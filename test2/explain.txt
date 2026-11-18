@@ -1,0 +1,13 @@
+Zhou Ruoxi developed the test code for file transfer and resumable transmission.
+
+Corresponding test cases in the report: FN-FILE-01 to FN-FILE-07, E2E-13 to E2E-25
+
+- `file-transfer.mjs`: executable test script
+- `file-transfer-results.json`: execution log, 20 out of 20 test cases passed
+
+Usage:
+Place `file-transfer.mjs` under the `server/test/` directory of the ReliaTox project.
+Run `npm install` at the project root directory first.
+Then run `node server/test/file-transfer.mjs`.
+
+The script automatically spins up a temporary server. Test data is stored in temporary folders and cleaned up after execution. No DeepSeek API calls are made.
