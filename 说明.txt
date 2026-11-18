@@ -1,23 +1,25 @@
-吴嘉伟负责的测试代码。不含周若曦的文件传输与断点续传（FN-FILE-01～07、E2E-13～E2E-25）。
+Test code owned by Wu Jiawei.
 
 functional.mjs
-  20 条：FN-ACC-01～06、FN-CHAT-01～06、FN-MEET-01～03、FN-WEB-01、FN-SCH-01～04
-  本次运行 20/20 通过，记录在 functional-results.json
+  20 cases: FN-ACC-01 through FN-ACC-06, FN-CHAT-01 through FN-CHAT-06, FN-MEET-01 through FN-MEET-03, FN-WEB-01, FN-SCH-01 through FN-SCH-04.
+  This run passed 20/20. The record is functional-results.json.
 
 e2e.mjs
-  20 条：E2E-01～12（账号、好友与聊天）、E2E-26～33（会议）
-  本次运行 20/20 通过
+  20 cases: E2E-01 through E2E-12 (accounts, friends, and chat) and E2E-26 through E2E-33 (meetings).
+  This run passed 20/20.
 
 fuzz.mjs
-  模糊测试，种子 20261116。由吴嘉伟负责。
+  Fuzz testing, seed 20261116. Owned by Wu Jiawei.
 
-界面截图
-  UI-01～UI-06，登录、空聊天、添加好友、传输页、会议大厅、个人页。
+Screenshots
+  UI-01 through UI-06: login, empty chat, add friend, transfers, meeting lobby, and profile.
 
-用法：把 functional.mjs、e2e.mjs、fuzz.mjs 放到 ReliaTox 项目的 server/test/。
-在项目根目录执行：
-  node server/test/functional.mjs
-  node server/test/e2e.mjs
-  node server/test/fuzz.mjs
-脚本各自启动临时服务，不调用 DeepSeek。
-周若曦的文件传输测试单独放在 server/test/file-transfer.mjs，不要再写进这两个脚本。
+How to run
+  Put functional.mjs, e2e.mjs, and fuzz.mjs in server/test/ of the ReliaTox project.
+  From the project root:
+
+    node server/test/functional.mjs
+    node server/test/e2e.mjs
+    node server/test/fuzz.mjs
+
+  Each script starts its own temporary server and does not call DeepSeek.
